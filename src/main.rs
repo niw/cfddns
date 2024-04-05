@@ -8,7 +8,7 @@ mod external_ip_addr;
 #[command(
     name = "cfddns",
     about = "Update Cloudflare DNS record with external IP address.",
-    version = "0.1.0"
+    version = "0.1.1"
 )]
 struct Cli {
     #[arg(long, env)]
