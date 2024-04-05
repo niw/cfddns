@@ -13,10 +13,8 @@ SYNOPSIS
 --------
 
 ```
-cfddns [OPTIONS] --api-token <API_TOKEN> --zone-id <ZONE_ID> --record-id <RECORD_ID> --name <NAME>
+cfddns --api-token <API_TOKEN> --zone-id <ZONE_ID> COMMAND [OPTIONS]
 ```
-
-### Options
 
 - `--api-token` or `API_TOKEN` environment variable is a token that is
   created at <https://dash.cloudflare.com/profile/api-tokens>.
@@ -24,22 +22,33 @@ cfddns [OPTIONS] --api-token <API_TOKEN> --zone-id <ZONE_ID> --record-id <RECORD
 - `--zone-id` or `ZONE_ID` enrivonment variable is found on "Overview"
   page on each domain name on Cloudflare dashboard.
 
-- `--record-id` is found by making [List DNS Records API](https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-list-dns-records) call.
-  Use `script/list_dns_records.sh` for example. See USAGE as well.
+### Command
+
+`update` - Update a Cloudflare DNS record with an external IP address.
+
+#### Options
+
+- `--record-id` to specify the record id to update. Use `list` command
+  to find this.
 
 - `--record-type` is DNS record type. Default to use `A`.
 
 - `--name` is DNS record name.
 
-- `--use-upnp` to use UPnP to get external IP address. Default to use
-  `http://checkip.dyndns.org` response.
+- `--provider` is the provider to fetch the external IP address.
+  Possible values is either
+  `upnp` to use UPnP, `aws` to use `https://checkip.amazonaws.com/`,
+  `dyndns` to use `http://checkip.dyndns.org/`.
+  Default to use `upnp`.
+
+`list` - List all Cloudflare DNS records.
 
 DESCRIPTION
 -----------
 
 `cfddns` is a simple command line tool to update Cloudflare DNS record
 with external IP address to use it as dynamic DNS.
-External IP address is fetched by 3rd party API or UPnP.
+External IP address is fetched by UPnP locally or 3rd party API.
 
 
 USAGE
@@ -48,12 +57,6 @@ USAGE
 Use [Cargo](https://www.rust-lang.org/) to build it.
 
 ```bash
-cargo build --release
-target/release/cfddns
-```
-
-To find `RECORD_ID`, `script/list_dns_records.sh` may help.
-
-```bash
-API_KEY=... ZONE_ID=... script/list_dns_records.sh|jq '.result[]|{id: .id, name: .name}'
+cargo build --release # Build binary.
+target/release/cfddns help # Print usage.
 ```
