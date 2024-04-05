@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::process::exit;
+use std::fmt;
 
 mod cloudflare_dns;
 mod external_ip_addr;
@@ -30,6 +31,16 @@ enum Provider {
     Dyndns,
 }
 
+impl fmt::Display for Provider {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Provider::Upnp => write!(f, "upnp"),
+            Provider::Aws => write!(f, "aws"),
+            Provider::Dyndns => write!(f, "Dyndns"),
+        }
+    }
+}
+
 #[derive(Args)]
 struct UpdateArgs {
     /// Record ID to update
@@ -55,6 +66,8 @@ enum Commands {
     Update(UpdateArgs),
     /// List all DNS records
     List,
+    /// Print a launchd plist to update DNS record
+    PrintUpdateLaunchdPlist(UpdateArgs),
 }
 
 #[tokio::main]
@@ -114,6 +127,56 @@ async fn main() {
                     record.id, record.record_type, record.name, record.content
                 );
             }
+        }
+
+        Commands::PrintUpdateLaunchdPlist(update_args) => {
+            let current_exe_path = match std::env::current_exe() {
+                Ok(path) => path,
+                Err(e) => {
+                    eprintln!("Failed to get current executable path: {}", e);
+                    exit(1);
+                }
+            };
+
+            println!(
+                r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>at.niw.cfddns</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>API_TOKEN</key>
+        <string>{}</string>
+        <key>ZONE_ID</key>
+        <string>{}</string>
+    </dict>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{}</string>
+        <string>update</string>
+        <string>--record-id</string>
+        <string>{}</string>
+        <string>--record-type</string>
+        <string>{}</string>
+        <string>--name</string>
+        <string>{}</string>
+        <string>--provider</string>
+        <string>{}</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>3600</integer>
+</dict>
+</plist>"#,
+                args.api_token,
+                args.zone_id,
+                current_exe_path.to_string_lossy(),
+                update_args.record_id,
+                update_args.record_type,
+                update_args.name,
+                update_args.provider
+            );
         }
     }
 }
