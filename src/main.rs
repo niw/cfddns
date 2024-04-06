@@ -1,5 +1,5 @@
+use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use std::process::exit;
 use std::fmt;
 
 mod cloudflare_dns;
@@ -71,7 +71,7 @@ enum Commands {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let args = Cli::parse();
 
     match &args.command {
@@ -81,15 +81,11 @@ async fn main() {
                 Provider::Aws => external_ip_addr::Provider::Aws,
                 Provider::Dyndns => external_ip_addr::Provider::Dyndns,
             };
-            let ip_addr = match external_ip_addr::external_ip_addr(provider).await {
-                Ok(ip_addr) => ip_addr,
-                Err(e) => {
-                    eprintln!("Failed to get external IP address: {}", e);
-                    exit(1);
-                }
-            };
+            let ip_addr = external_ip_addr::external_ip_addr(provider)
+                .await
+                .context("Failed to get external IP address")?;
 
-            match cloudflare_dns::update_record(
+            cloudflare_dns::update_record(
                 &args.api_token,
                 &args.zone_id,
                 &update_args.record_id,
@@ -98,45 +94,30 @@ async fn main() {
                 &ip_addr,
             )
             .await
-            {
-                Ok(_) => {
-                    println!(
-                        "Updated DNS record: {} IP address: {}",
-                        update_args.name, ip_addr
-                    );
-                }
-                Err(e) => {
-                    eprintln!("Failed to update DNS record: {}", e);
-                    exit(1);
-                }
-            }
+            .context("Failed to update DNS record")?;
+
+            println!(
+                "Updated DNS record: {} type: {} IP address: {}",
+                update_args.name, update_args.record_type, ip_addr
+            );
         }
 
         Commands::List => {
-            let records = match cloudflare_dns::list_records(&args.api_token, &args.zone_id).await {
-                Ok(records) => records,
-                Err(e) => {
-                    eprintln!("Failed to list DNS records: {}", e);
-                    exit(1);
-                }
-            };
+            let records = cloudflare_dns::list_records(&args.api_token, &args.zone_id)
+                .await
+                .context("Failed to list DNS records")?;
 
             for record in records {
                 println!(
-                    "Record ID: {} type: {} name: {} content: {}",
-                    record.id, record.record_type, record.name, record.content
+                    "Record ID: {} type: {} name: {} content: {} TTL: {}",
+                    record.id, record.record_type, record.name, record.content, record.ttl
                 );
             }
         }
 
         Commands::PrintUpdateLaunchdPlist(update_args) => {
-            let current_exe_path = match std::env::current_exe() {
-                Ok(path) => path,
-                Err(e) => {
-                    eprintln!("Failed to get current executable path: {}", e);
-                    exit(1);
-                }
-            };
+            let current_exe_path =
+                std::env::current_exe().context("Failed to get current executable path")?;
 
             println!(
                 r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -179,4 +160,6 @@ async fn main() {
             );
         }
     }
+
+    Ok(())
 }

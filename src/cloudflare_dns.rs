@@ -1,16 +1,18 @@
+use anyhow::{ensure, Result};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
-fn authorized_client(api_token: &str) -> Result<Client, Box<dyn Error>> {
+fn authorized_client(api_token: &str) -> Result<Client> {
     let mut headers = HeaderMap::new();
     headers.insert(
         AUTHORIZATION,
         HeaderValue::from_str(&format!("Bearer {}", api_token))?,
     );
 
-    Ok(Client::builder().default_headers(headers).build()?)
+    let client = Client::builder().default_headers(headers).build()?;
+
+    Ok(client)
 }
 
 #[derive(Serialize)]
@@ -34,7 +36,7 @@ pub async fn update_record(
     record_type: &str,
     name: &str,
     ip: &str,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let client = authorized_client(api_token)?;
     let url = format!(
         "https://api.cloudflare.com/client/v4/zones/{}/dns_records/{}",
@@ -50,11 +52,9 @@ pub async fn update_record(
     let response = client.put(url).json(&update_record).send().await?;
 
     let update_response: UpdateRecordResponse = response.json().await?;
-    if update_response.success {
-        Ok(())
-    } else {
-        Err("Failed to update DNS record".into())
-    }
+    ensure!(update_response.success, "Failed to update DNS record");
+
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -73,7 +73,7 @@ struct RecordsResponse {
     result: Vec<Record>,
 }
 
-pub async fn list_records(api_token: &str, zone_id: &str) -> Result<Vec<Record>, Box<dyn Error>> {
+pub async fn list_records(api_token: &str, zone_id: &str) -> Result<Vec<Record>> {
     let client = authorized_client(api_token)?;
     let url = format!(
         "https://api.cloudflare.com/client/v4/zones/{}/dns_records",
@@ -83,9 +83,7 @@ pub async fn list_records(api_token: &str, zone_id: &str) -> Result<Vec<Record>,
     let response = client.get(url).send().await?;
 
     let records_response: RecordsResponse = response.json().await?;
-    if records_response.success {
-        Ok(records_response.result)
-    } else {
-        Err("Failed to list DNS records".into())
-    }
+    ensure!(records_response.success, "Failed to list DNS records");
+
+    Ok(records_response.result)
 }

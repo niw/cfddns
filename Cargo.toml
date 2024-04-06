@@ -4,6 +4,7 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
+anyhow = "^1.0.81"
 clap = { version = "^4.5.4", features = ["derive", "env"] }
 igd = { version = "^0.12.1", features = ["aio"] }
 reqwest = { version = "^0.12.2", features = ["json"] }
