@@ -24,9 +24,9 @@ cfddns --api-token <API_TOKEN> --zone-id <ZONE_ID> COMMAND [OPTIONS]
 
 ### Command
 
-`update` -- Update a Cloudflare DNS record with an external IP address.
+#### `update`
 
-#### Options
+Update a Cloudflare DNS record with an external IP address.
 
 - `--record-id` to specify the record id to update. Use `list` command
   to find this.
@@ -41,15 +41,15 @@ cfddns --api-token <API_TOKEN> --zone-id <ZONE_ID> COMMAND [OPTIONS]
   `dyndns` to use `http://checkip.dyndns.org/`.
   Default to use `upnp`.
 
-`list` -- List all Cloudflare DNS records.
+#### `list`
 
-#### Options
+List all Cloudflare DNS records.
 
 This command takes no options.
 
-`print-launchd-plist` -- Print `launchd(8)` plist file to update DNS record. Useful to install `cfddns` as a repeated task on macOS.
+#### `print-launchd-plist`
 
-#### Options
+Print `launchd(8)` plist file to update DNS record. Useful to install `cfddns` as a repeated task on macOS.
 
 This command takes same options as `update` command.
 
