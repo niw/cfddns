@@ -70,7 +70,7 @@ pub struct Record {
 #[derive(Deserialize)]
 struct RecordsResponse {
     success: bool,
-    result: Vec<Record>,
+    result: Option<Vec<Record>>,
 }
 
 pub async fn list_records(api_token: &str, zone_id: &str) -> Result<Vec<Record>> {
@@ -85,5 +85,5 @@ pub async fn list_records(api_token: &str, zone_id: &str) -> Result<Vec<Record>>
     let records_response: RecordsResponse = response.json().await?;
     ensure!(records_response.success, "Failed to list DNS records");
 
-    Ok(records_response.result)
+    Ok(records_response.result.unwrap_or_default())
 }
